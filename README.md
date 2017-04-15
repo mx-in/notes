@@ -4,5 +4,7 @@
 
 # 笔记
 
-[Crodova Tutorial](https://github.com/mx-in/notes/blob/master/articles/translate/Cordova-Tutorial.md)
+[Crodova Tutorial](https://github.com/mx-in/notes/blob/master/articles/note/Cordova-Tutorial.md)
+
+
 
