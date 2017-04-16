@@ -52,3 +52,12 @@
 
 ## Unit Testing in Xcode
 
+### 创建一个单元测试的 Target
+
+**Xcode Test Navigato**r 提供了一个简单的方式用于测试；你需要创建一个 test target 用于在你的 App 上运行测试。
+
+打开 **BullsEyes** 工程然后按下 **Command-5** 打开 test navigator。
+
+点击左下角的 + 按钮，在菜单中选择 **New Unit Test Target…** :
+
+![TestNavigator1](/Users/mx_in/Developer/GithubRepo/notes/articles/imgs/TestNavigator1.png)
