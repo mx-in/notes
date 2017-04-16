@@ -2,7 +2,7 @@
 
 写测试并不是令人向往的，但是如果测试能帮助你的 App 减少 bug 那么写测试就很有必要了。如果你正在阅读这篇文章大概也意识到了应该为你的代码和 UI 写一些测试了，但是也许你并不知道如何在 Xcode 进行测试。
 
-也许你已经有一个正在“正常工作”的 App 但是并没有为它建立测试，但是你需要在任何对 App 的修改和扩展后进行测试；也许你已经写过一些测试，但是并不确定这些测试写的是否正确；或者，也许你正在写 App 的，同时你需要进行测试。
+也许你已经有一个正在“正常工作”的 App 但是并没有为它建立测试，而且你需要在任何对 App 的修改和扩展后进行测试；也许你已经写过一些测试，但是并不确定这些测试写的是否正确；或者，也许你正在写 App 的，同时你需要进行测试。
 
 本篇关于 iOS 单元和 UI 测试的入门教程将向你介绍如下内容：
 
@@ -60,19 +60,17 @@
 
 点击左下角的 + 按钮，在菜单中选择 **New Unit Test Target…** :
 
-![TestNavigator1](/Users/mx_in/Developer/GithubRepo/notes/articles/imgs/TestNavigator1.png)
+![TestNavigator1](https://raw.githubusercontent.com/mx-in/notes/master/articles/imgs/TestNavigator1.png)
 
 使用默认的名字 **BullsEyeTests**. 然后 test bundle 会出现在 test navigator 中，点击它在 XCode editor 中打开。如果 BullsEyeTests 没有自动的出现，可以尝试点击其他 navigators 然后在点会 test navigator。
 
-![TestNavigator2](/Users/mx_in/Developer/GithubRepo/notes/articles/imgs/TestNavigator2.png)
-
-模板中导入了 **XCTest** 并且定义了 **XCTestCase** 的子类 **BullsEyeTests** ，包含了 **setup()**, **tearDown()** 和 测试方法范例。
+![TestNavigator2](https://raw.githubusercontent.com/mx-in/notes/master/articles/imgs/TestNavigator2.png)模板中导入了 **XCTest** 并且定义了 **XCTestCase** 的子类 **BullsEyeTests** ，包含了 **setup()**, **tearDown()** 和 测试方法范例。
 
 有三种方法去运行这个 test class ：
 
 1. 在 **Product\Test** 菜单下点击测试，或者使用 **Command-U** 快捷键，这将运行所有测试类。
 2. 点击测试 navigator 中的箭头按钮。
-3. 点击编辑器沿上钻石状的按钮。![TestNavigator3](/Users/mx_in/Developer/GithubRepo/notes/articles/imgs/TestNavigator3.png)
+3. 点击编辑器沿上钻石状的按钮。![TestNavigator3](https://raw.githubusercontent.com/mx-in/notes/master/articles/imgs/TestNavigator3.png)
 
 你可以单独的运行测试方法通过点击钻石状的按钮，也可以在 test navigator 或者编辑器左边沿点击运行。
 
@@ -80,7 +78,7 @@
 
 当所有的测试运行成功，小钻石图标将变为绿色并打上了小对勾，点击最后的**testPerformanceExample()** 左侧的灰色的小钻石图标将展现性能分析结果：
 
-![TestNavigator4](/Users/mx_in/Developer/GithubRepo/notes/articles/imgs/TestNavigator4.png)
+![TestNavigator4](https://raw.githubusercontent.com/mx-in/notes/master/articles/imgs/TestNavigator4.png)
 
 你不需要 **testPerformanceExample()**， 所以删掉它即可。
 
@@ -178,17 +176,17 @@ func testScoreIsComputedWhenGuessLTTarget() {
 
 在 breakpoint navigator 中添加 *Test Failure Breakpoint* ，这将使测试停止，当被测试方法抛出一个 failure assertion 。
 
-![AddTestFailureBreakpoint](/Users/mx_in/Developer/GithubRepo/notes/articles/imgs/AddTestFailureBreakpoint.png)
+![AddTestFailureBreakpoint](https://raw.githubusercontent.com/mx-in/notes/master/articles/imgs/AddTestFailureBreakpoint.png)
 
 运行测试：测试将在 XCTAssertEqual 那一行停止并且伴随着一个 Test Failure。
 
 在 debug console检查 `gameUnderTest` 和 `guess` 对象:
 
-![TestFailure](/Users/mx_in/Developer/GithubRepo/notes/articles/imgs/TestFailure.png)
+![TestFailure](https://raw.githubusercontent.com/mx-in/notes/master/articles/imgs/TestFailure.png)
 
 `guess` 为 `targetValue - 5` 但是 `scoreRound` 为 105 ,而不是95!！
 
-为了进一步检查，使用常规的 debug 方式：在 *BullsEyeGame.swift*, 的  `check(_:)`方法中创建 `difference` 处设置断点。然后再次运行测试，单步调试检查 `difference`的值![DebugConsole](/Users/mx_in/Developer/GithubRepo/notes/articles/imgs/DebugConsole.png)
+为了进一步检查，使用常规的 debug 方式：在 *BullsEyeGame.swift*, 的  `check(_:)`方法中创建 `difference` 处设置断点。然后再次运行测试，单步调试检查 `difference`的值![DebugConsole](https://raw.githubusercontent.com/mx-in/notes/master/articles/imgs/DebugConsole.png)
 
 问题在于 `difference` 为一个负数，所以 score 为 100 - (-5); 使用绝对值可以修复这个问题，打开注释掉的这个行并删掉有问题的着一行，去掉断点，然后再次运行测试来确认修复成功。
 
@@ -259,4 +257,60 @@ func testValidCallToiTunesGetsHTTPStatusCode200() {
 }
 ```
 
-这个测试用于测试 iTunes 服务是否会返回 http 状态码 200，
+这个测试用于测试 iTunes 服务是否会返回 http 状态码 200，大部分代码和在 App 中的实现代码相同，不同的地方包括：
+
+1. `expectation(_:)` 方法返回一个`XCTestExpectation` 对象, 存储与 `promise`. 对这个对象也有一些其他的常用命名，包括 `expectation` 和 `future`. `description` 参数描述了你所希望发生的状况。
+2. 为了匹配 `description` 所描述的状况, 可以在异步回调成功的情况下调用`promise.fulfill()` 。
+3. `waitForExpectations(_:handler:)` 方法将使测试持续运行，直到期望的情况完全匹配(all expectations are fulfilled), 或者 `timeout` 参数所指定的时间到时。
+
+运行测试，如果你的网络保持通畅，当 app 启动并加载到模拟器测试后，将耗费几秒钟的时间，然后显示测试成功。
+
+## Fail Faster
+
+失败很让人受伤，而且也不应该太过耗时，以下将告诉你如何在测试失败的情况下更快的发现测试失败，而不是像上面的例子一样需要等到 `timeout` 时间耗尽以后，尽量的节省时间，这样你更好的把时间浪费在刷朋友圈上了 ：）
+
+首先修改测试使得异步调用返回失败的结果，轻轻的从 URL 的"itunes"中删去 's' ：
+
+```swift
+let url = URL(string: "https://itune.apple.com/search?media=music&entity=song&term=abba")
+```
+
+运行测试，测试将失败，但是你却必须得等到 timeout 的时间走完! 在上边的例子中要么 调用 promise.fulfill() 在测试成功的情况下，要么等待 timeout 的时间走完，在测试失败的情况下。
+
+你可以修改 expectation 使得在测试失败的情况下可以更快的呈现失败结果: 替换等待请求成功的方案，采取只等待异步方法的回调被执行，无论返回的结果是成功或是失败，都将较快的接收到相应的 reponse ，当服务器有响应时即实现了所期望的情况，接下来你的测试可以检查请求是否成功。
+
+接下里你需要创建一个新的 test 方法并添加到你的测试类中去：
+
+```swift
+// Asynchronous test: faster fail
+func testCallToiTunesCompletes() {
+  // given
+  let url = URL(string: "https://itune.apple.com/search?media=music&entity=song&term=abba")
+  // 1
+  let promise = expectation(description: "Completion handler invoked")
+  var statusCode: Int?
+  var responseError: Error?
+ 
+  // when
+  let dataTask = sessionUnderTest.dataTask(with: url!) { data, response, error in
+    statusCode = (response as? HTTPURLResponse)?.statusCode
+    responseError = error
+    // 2
+    promise.fulfill()
+  }
+  dataTask.resume()
+  // 3
+  waitForExpectations(timeout: 5, handler: nil)
+ 
+  // then
+  XCTAssertNil(responseError)
+  XCTAssertEqual(statusCode, 200)
+}
+```
+
+关键点在于，提供了一个易于实现的期望，并且可以在较短的时间内实现；如果请求失败那么则 断言 **fail**.
+
+运行测试：因为请求失败，所以测试应该很快就回呈现失败结果，而不是因为测试 **timeout**。
+
+修改回正确的 url 然后再次测，测试将显示为测试成功。
+
