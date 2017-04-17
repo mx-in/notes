@@ -314,3 +314,348 @@ func testCallToiTunesCompletes() {
 
 修改回正确的 url 然后再次测，测试将显示为测试成功。
 
+## Faking Objects and Interactions
+
+异步测试给了你可以正确使用异步请求ApI 返回数据的信心。也许你同样需要测试你的程序在接受到来自 `URLSession ` 的数据做为输入时程序是否正确工作, 又或是测试 `UserDefaults`  CloudKit 是否更新成功。
+
+大多数的App 需要和系统以及类库的对象有交互，这些对象你无法掌控，并且测试起来也许很慢且测试结果很可能是无法复现的，这和 **FIRST** 原则中的两条是冲突的。所以做为替代，你需要伪造交互（*fake* the interactions）通过测试桩(stubs)获取输入，或是通过模拟的对象(mock objects)。
+
+创建一个 faker 对象，当你的代码依赖与系统或是类库对象，将这个faker 注入你的代码用来扮演系统或是类库对象的角色。 [*Dependency Injection* by Jon Reid](https://www.objc.io/issues/15-testing/dependency-injection/) 讲述了关于注入的方法。
+
+### Fake Input From Stub
+
+在此测试中，你将检查该应用程序的updateSearchResults（_ :)方法是否正确地解析会话下载的数据，检查的方法是去检查searchResults.count是否正确。 SUT(system under test) 为 viewController，你需要使用一些预先下载的数据来伪造会话
+
+点击 + 在菜单中选择 *New Unit Test Target…* 然后命名为 *HalfTunesFakeTests*. 然后导入 HalfTunes app 通过使用下边的 `import`  声明:
+
+```swift
+@testable import HalfTunes
+```
+
+声明一个 SUT, 并在  `setup()` 中创建，在 `tearDown()` 中释放：
+
+```swift
+var controllerUnderTest: SearchViewController!
+ 
+override func setUp() {
+  super.setUp()
+  controllerUnderTest = UIStoryboard(name: "Main", 
+      bundle: nil).instantiateInitialViewController() as! SearchViewController!
+}
+ 
+override func tearDown() {
+  controllerUnderTest = nil
+  super.tearDown()
+}
+```
+
+> **Note:** SUT 是一个 view controller 因为  HalfTunes 有一个 *臃肿* 的 view controller — 所有的工作都会在 SearchViewController.swift 中完成。 [将网络请求代码分离在其他模块中](http://williamboles.me/networking-with-nsoperation-as-your-wingman/) 将减少这个问题，并且将更易于测试。
+
+接下来你需要一个简单的 JSON 数据用于伪造一个 session 所将要提供的数据，来进行测试；我们需要几条数据即可，所以在下载的 URL 后边添加 `&limit=3` 来限制一下下载数据的条数。
+
+```swift
+https://itunes.apple.com/search?media=music&entity=song&term=abba&limit=3
+```
+
+
+
+Copy 这个 URL 把它复制在浏览器中, 复制 JSON 并且把他们存储在一个名为  *abbaData.json* 的文件中，然后你需要将它添加至 *HalfTunesFakeTests* group 中。
+
+ HalfTunes project 包含了一用于模拟网络请求的类： *DHURLSessionMock.swift*. 它定义了一个简单的协议 `DHURLSession`, 包含一些方法 (stubs) ，用于创建一个从从 `URL` 或 `URLRequest`下载数据的任务。这个文件也定义了遵循如上协议的 `URLSessionMock` ，它提供初始化方法让你可以模拟一个  `URLSession`对象，并且你可与选择它的返回数据，response 或是会返回 error。
+
+创建伪造的数据 和 response, 然后创建一个伪造的 session 对象, 在 `setup()` 的声明后创建 SUT:
+
+```swift
+let testBundle = Bundle(for: type(of: self)) 
+let path = testBundle.path(forResource: "abbaData", ofType: "json") 
+let data = try? Data(contentsOf: URL(fileURLWithPath: path!), options: .alwaysMapped)   
+let url = URL(string: "https://itunes.apple.com/search?media=music&entity=song&term=abba") 
+let urlResponse = HTTPURLResponse(url: url!, statusCode: 200, httpVersion: nil, headerFields: nil)   
+let sessionMock = URLSessionMock(data: data, response: urlResponse, error: nil)
+```
+
+在 setup()方法的最后,  注入了一个伪造的 session 做为 SUT 的属性:
+
+```swift
+controllerUnderTest.defaultSession = sessionMock
+```
+
+> **Note:** 你将在你的测试中直接的使用伪造的 session 对象，但是这里向你展示了如何去调用 SUT 的方法，从而可以去使用 view controller 的 `defaultSession`属性.
+
+现在你可以去写下用于检查调用 `updateSearchResults(_:)`方法是否会正确的解析伪造的数据。接下来替换 `testExample()`方法：
+
+```swift
+// Fake URLSession with DHURLSession protocol and stubs
+func test_UpdateSearchResults_ParsesData() {
+  // given
+  let promise = expectation(description: "Status code: 200")
+ 
+  // when
+  XCTAssertEqual(controllerUnderTest?.searchResults.count, 0, "searchResults should be empty before the data task runs")
+  let url = URL(string: "https://itunes.apple.com/search?media=music&entity=song&term=abba")
+  let dataTask = controllerUnderTest?.defaultSession.dataTask(with: url!) {
+    data, response, error in
+    // if HTTP request is successful, call updateSearchResults(_:) which parses the response data into Tracks
+    if let error = error {
+      print(error.localizedDescription)
+    } else if let httpResponse = response as? HTTPURLResponse {
+      if httpResponse.statusCode == 200 {
+        promise.fulfill()
+        self.controllerUnderTest?.updateSearchResults(data)
+      }
+    }
+  }
+  dataTask?.resume()
+  waitForExpectations(timeout: 5, handler: nil)
+ 
+  // then
+  XCTAssertEqual(controllerUnderTest?.searchResults.count, 3, "Didn't parse 3 items from fake response")
+}
+```
+
+你依旧需要去写一个异步测试，因为 **stub** 需要假装有一个异步方法。
+
+在 *when*  的 assertion 中 在运行测试前`searchResults`应当为0  — 这将为真, 因为你在 `setup()` 方法中创建了一个全新的 SUT。
+
+伪造数据的 JSON 包含三个 `Track` 对象，所以在 *then* 的 assertion中 view controller 的`searchResults` 数组应当包含三个对象。
+
+运行测试，测试成功的结果将来的非常快，因为这不是一个真正的网络请求。
+
+### Fake Update to Mock Object
+
+上一个测试使用 *stub* 用于从伪造对象中获得输入， 接下来你将模拟一个对象用于测试你的代码是否正确的更新了`UserDefaults` 。
+
+重新打开 *BullsEye* 工程. app 有两种游戏模式: 用户可以移动滑动开关来匹配 target 对应的值，或是更具 滑动开关的位置来猜测 target 的值。一个 segmented control  在右下角用于切换游戏模式，并且更新 user default 中存储的 game style。
+
+你接下来需要测试 app 是否正确的更新了 `gameStyle` user default.
+
+在 test navigator 中点击  *New Unit Test Target…  然后命名为  BullsEyeMockTests*。 然后在 `import` 声明下加入如下内容：
+
+```swift
+@testable import BullsEye
+ 
+class MockUserDefaults: UserDefaults {
+  var gameStyleChanged = 0
+  override func set(_ value: Int, forKey defaultName: String) {
+    if defaultName == "gameStyle" {
+      gameStyleChanged += 1
+    }
+  }
+}
+```
+
+`MockUserDefaults` 重写了 `set(_:forKey:)` 方法，当调用时去自增 `gameStyleChanged`标识. 通常你会在类似的测试中看到一个  `Bool` 变量用于标识, 但是一个自增的 `Int` 可以更方便 — 比如说你可以判断该方法是否被调用超过了一次。
+
+在 `BullsEyeMockTests`: 中声明 SUT 和模拟对象:
+
+```swift
+var controllerUnderTest: ViewController!
+var mockUserDefaults: MockUserDefaults!
+```
+
+在 `setup()`，中 创建 SUT 和模拟的对象, 然后注入模拟的对象为 SUT 的属性:
+
+```swift
+controllerUnderTest = UIStoryboard(name: "Main", bundle: nil).instantiateInitialViewController() as! ViewController!
+mockUserDefaults = MockUserDefaults(suiteName: "testing")!
+controllerUnderTest.defaults = mockUserDefaults
+```
+
+在  `tearDown()` 中释放 SUT 和所模拟的对象:
+
+```swift
+controllerUnderTest = nil
+mockUserDefaults = nil
+```
+
+用如下的代码替换 `testExample()` ：
+
+```swift
+// Mock to test interaction with UserDefaults
+func testGameStyleCanBeChanged() {
+  // given
+  let segmentedControl = UISegmentedControl()
+ 
+  // when
+  XCTAssertEqual(mockUserDefaults.gameStyleChanged, 0, "gameStyleChanged should be 0 before sendActions")
+  segmentedControl.addTarget(controllerUnderTest, 
+      action: #selector(ViewController.chooseGameStyle(_:)), for: .valueChanged)
+  segmentedControl.sendActions(for: .valueChanged)
+ 
+  // then
+  XCTAssertEqual(mockUserDefaults.gameStyleChanged, 1, "gameStyle user default wasn't changed")
+}
+```
+
+在 *when* 的 assertion 中 `ameStyleChanged`标识在 segmented control  的  "tap" 方法执行前应当为 0 ， 因此，如果 *then* assertion 结果也为 true, 这就意味着可以确定 `set(_:forKey:) `已经被调用了一次。
+
+运行测试，这个测试的结果应该是成功的。
+
+## UI Testing in Xcode
+
+Xcode 7 引入了 UI 测试,  你一可以通过录制一些和 UI 的交互用来创建一个 UI 测试. UI测试通过查询 app 的 UI 对象，合成事件，然后将它们发送到这些对象来工作。该API使你能够检查UI对象的属性和状态，以便将其与预期状态进行比较。
+
+在 *BullsEye* 工程的 test navigator 中添加一个新的 *UI Test Target*. 检查一下被测试的对象为 *BullsEye*, 然后选择默认的命名 *BullsEyeUITests*.
+
+增加如下属性在 `BullsEyeUITests` class 的顶部:
+
+```swift
+var app: XCUIApplication!
+```
+
+在 `setup()` 方法中 用如下的代码替换`XCUIApplication().launch()` ：
+
+```swift
+app = XCUIApplication()
+app.launch()
+```
+
+修改 `testExample()` 为 `testGameStyleSwitch()`.
+
+在`testGameStyleSwitch()` 中增加一行空行，然后点击在编辑器窗口下方的红色的 *Record* 按钮:
+
+[![iOS Unit Testing: Recording a UI Test](https://koenig-media.raywenderlich.com/uploads/2016/12/UITest.png)](https://koenig-media.raywenderlich.com/uploads/2016/12/UITest.png)
+
+当 app 出现在模拟起上的时候，点击控制游戏  *Slide* segment  和顶部的 label，然后点击 Xcode 的 *Recod* 开关停止录制。
+
+现在`testGameStyleSwitch()`会出现如下三行:
+
+```swift
+let app = XCUIApplication()
+app.buttons["Slide"].tap()
+app.staticTexts["Get as close as you can to: "].tap()
+```
+
+删掉除这三行以外的其他行。
+
+将第一行剪切复制到  `setup()` ，你不去要去点击，所以删掉目前第二，第三行的 `.tap()。打开 ["Slide"]` 然后选择 `segmentedControls.buttons["Slide"]`。
+
+留下来的内容是: 
+
+```swift
+app.segmentedControls.buttons["Slide"]
+app.staticTexts["Get as close as you can to: "]
+```
+
+我们可以在 **given** 中修改一下上边的内容:
+
+```swift
+// given
+let slideButton = app.segmentedControls.buttons["Slide"]
+let typeButton = app.segmentedControls.buttons["Type"]
+let slideLabel = app.staticTexts["Get as close as you can to: "]
+let typeLabel = app.staticTexts["Guess where the slider is: "]
+```
+
+现在你已经有了个 buttons 和在两种情况下可能出现在顶端的labels， 然后增加如下内容：
+
+```swift
+// then
+if slideButton.isSelected {
+  XCTAssertTrue(slideLabel.exists)
+  XCTAssertFalse(typeLabel.exists)
+ 
+  typeButton.tap()
+  XCTAssertTrue(typeLabel.exists)
+  XCTAssertFalse(slideLabel.exists)
+} else if typeButton.isSelected {
+  XCTAssertTrue(typeLabel.exists)
+  XCTAssertFalse(slideLabel.exists)
+ 
+  slideButton.tap()
+  XCTAssertTrue(slideLabel.exists)
+  XCTAssertFalse(typeLabel.exists)
+}
+```
+
+如上用来检查相应的 lable 是否后出现在界面上，当每一个按钮被点击时。运行测试，所有的 assertions 都将为成功。
+
+## Performance Testing
+
+ [Apple 文档的论述为：](https://developer.apple.com/library/prerelease/content/documentation/DeveloperTools/Conceptual/testing_with_xcode/chapters/04-writing_tests.html#//apple_ref/doc/uid/TP40014132-CH4-SW8) A performance test takes a block of code that you want to evaluate and runs it ten times, collecting the average execution time and the standard deviation for the runs. The averaging of these individual measurements form a value for the test run that can then be compared against a baseline to evaluate success or failure.
+
+```
+性能测试需要一系列要评估的代码并运行十次，收集运行的平均执行时间和标准偏差。这些单独测量的平均值形成测试运行的值，然后将其与基准进行比较以评估成功或失败。
+```
+
+写性能测试是很简单的：你只需要将你需要测试性能的代码放入 messure 闭包。
+
+重新打开 *HalfTunes*工程，在 *HalfTunesFakeTests*, 中替换 `testPerformanceExample()` 为如下的测试：
+
+```swift
+// Performance 
+func test_StartDownload_Performance() {
+  let track = Track(name: "Waterloo", artist: "ABBA", 
+      previewUrl: "http://a821.phobos.apple.com/us/r30/Music/d7/ba/ce/mzm.vsyjlsff.aac.p.m4a")
+  measure {
+    self.controllerUnderTest?.startDownload(track)
+  }
+}
+```
+
+运行测试，然后点击出现在  `measure()`闭包底部左边的按钮来查看分析结果：
+
+[![iOS Unit Testing: Viewing a Performance Result](https://koenig-media.raywenderlich.com/uploads/2016/12/PerformanceResult-650x228.png)](https://koenig-media.raywenderlich.com/uploads/2016/12/PerformanceResult.png)
+
+
+
+点击  *Set Baseline*, 然后会再次运行性能测试并展现结果— 结果可能比 baseline 的情况更好，也可能更坏， *Edit* 按钮可以让你重置 baseline 为一个新的结果。
+
+Baselines 存储了对应设别的配置, 因此你可以在几个不同的设备上执行相同的测试，并且每个设备都保持不同的基准，具体取决于具体配置的处理器速度，内存等。
+
+每当你你修改 app 并有可能影响到被测试方法的性能时，你需要再次运行性能测试，去看看运行结果和 baseline 比较起来怎么样。
+
+## Code Coverage
+
+代码覆盖率工具可以告诉你 app 中具体有哪些代码被测试跑到了，因此你就可以发祥有哪些代码是没有被测试过的。
+
+> Note:是否应当在 code covaertage 是 enable 的情况下运行测试？ [Apple’s documentation](https://developer.apple.com/library/prerelease/content/documentation/DeveloperTools/Conceptual/testing_with_xcode/chapters/07-code_coverage.html#//apple_ref/doc/uid/TP40014132-CH15-SW1) says: Code coverage data collection incurs a performance penalty … affect[ing] execution of the code in a linear fashion so performance results remain comparable from test run to test run when it is enabled. However, you should consider whether to have code coverage enabled when you are critically evaluating the performance of routines in your tests.
+>
+> （代码覆盖率数据收集会引起性能损失...并且以线性方式影响代码的执行，而在测试时启用，性能测试结果与不启用时测试运行相当。但是，当严格评估测试中例程的性能时，应该考虑是否启用代码覆盖。）
+
+启用代码覆盖率,需要编辑 scheme 中的 *Test* 选项 然后选中 *Code Coverage*：
+
+[![iOS Unit Testing: Setting the Code Coverage Switch](https://koenig-media.raywenderlich.com/uploads/2016/12/CodeCoverageSwitch.png)](https://koenig-media.raywenderlich.com/uploads/2016/12/CodeCoverageSwitch.png)
+
+运行所有的测试 (Command-U), 然后打开 reports navigator (Command-8). 选择By Time*, 选择列表中的第一行, 然后选择 Coverage* tab:
+
+[![iOS Unit Testing: Code Coverage Report](https://koenig-media.raywenderlich.com/uploads/2016/12/CoverageReport1-650x189.png)](https://koenig-media.raywenderlich.com/uploads/2016/12/CoverageReport1.png)
+
+点击下拉三角，查看*SearchViewController.swift* 的方法列表：
+
+[![iOS Unit Testing: Code Coverage Report](https://koenig-media.raywenderlich.com/uploads/2016/12/CoverageReport2-650x252.png)](https://koenig-media.raywenderlich.com/uploads/2016/12/CoverageReport2.png)
+
+当鼠标浮动在`updateSearchResults(_:)` 右侧显示覆盖路的进度条上时， 可以看到该方法覆盖率为71.88%.
+
+点击这个 function 可以打开其所在的源文件，并显示该方法。当你的鼠标当悬停在右侧栏中的coverage annotations上时，代码段突出显示绿色或红色：
+
+[![iOS Unit Testing: Good and Bad Code Coverage](https://koenig-media.raywenderlich.com/uploads/2016/12/CoverageReport4-650x436.png)](https://koenig-media.raywenderlich.com/uploads/2016/12/CoverageReport4.png)
+
+ coverage annotations  显示测试命中每个代码段的次数;未调用的部分以红色突出显示。正如所期望的，for循环运行了3次，但是 else 没有执行任何操作。要增的覆盖范围，可以复制abbaData.json，然后对其进行编辑，从而导致不同的错误 - 例如，将`"results"` 改为`"result"`测试（"Results key not found in dictionary" ）
+
+### 100% Coverage?
+
+该如何努力实现100％的代码覆盖呢？ 谷歌一下 “100% unit test coverage”，你会发现一系列支持和反对意见，以及对“100% unit test coverage” 的定义的辩论。最多的争论是最后的10-15％的努力是不值得的。也有争论说最后的10-15％是最重要的，因为很难测试。Google “hard to unit test bad design” 可以找到一些令人信服的观点如：[untestable code is a sign of deeper design problems](https://www.toptal.com/qa/how-to-write-testable-code-and-why-it-matters) ，进一步的去思考也许会得出一条结论： [测试驱动开发](http://qualitycoding.org/tdd-sample-archives/) 是行之有效的开发模式。
+
+## END
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
