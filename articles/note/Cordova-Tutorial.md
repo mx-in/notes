@@ -12,7 +12,7 @@
 
 ### 所支持平台
 
-![support_platforms](https://raw.githubusercontent.com/mx-in/notes/master/articles/imgsnotes/articles/imgs/support_platforms.png)
+![support_platforms](https://raw.githubusercontent.com/mx-in/notes/master/articles/imgs/support_platforms.png)
 
 ### 原生功能 JS API
 
@@ -50,7 +50,7 @@ Cordova 通过插件机制用以为 HTML/JavaScript 应用提供可以支持原�
 
 Cordova 命令行工具是基于  [Node.js](http://nodejs.org/) 的，我们可以使用 [NPM ](https://npmjs.org/package/cordova) 安装它。
 
-``npm install -g cordova`
+`npm install -g cordova`
 
 安装完成后，在命令行键入 `cordova` 以验证是否安装成功。
 
@@ -407,7 +407,7 @@ exports.coolMethod = function(arg0, success, error) {
 @end
 ```
 
-我们只需要将其修改为我们想要实现的插件即可。在修改完成后，可以通过 cordova plugin add "path to you plugin" 命令来添加你的插件以测试创建的插件是否可用。
+我们只需要将其修改为我们想要实现的插件即可。在修改完成后，可以通过 cordova plugin add "path to you plugin" 命令来添加你的插件以测试创建的插件是否可用，该命令会自动将 plugin.xml 中的信息添加到 config.xml  和 cordova_plugins.js 文件中。
 
 [TestPlugin Demo](https://github.com/mx-in/notes/blob/master/articles/document/TestPlugin)
 
