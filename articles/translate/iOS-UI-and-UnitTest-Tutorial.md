@@ -1,10 +1,10 @@
 # iOS Unit Testing and UI Testing Tutorial(翻译自[raywenderlich.com](https://www.raywenderlich.com/150073/ios-unit-testing-and-ui-testing-tutorial))
 
-写测试并不是令人向往的，但是如果测试能帮助你的 App 减少 bug 那么写测试就很有必要了。如果你正在阅读这篇文章大概也意识到了应该为你的代码和 UI 写一些测试了，但是也许你并不知道如何在 Xcode 进行测试。
+写测试并不是令人向往的，但是如果测试能帮助你的 App 减少 bug 那么写测试就很有必要了。如果你正在阅读这篇文章大概也意识到了应该为你的代码和 UI 写一些测试了，但是可能你并不知道如何在 Xcode 进行测试。
 
-也许你已经有一个正在“正常工作”的 App 但是并没有为它建立测试，而且你需要在任何对 App 的修改和扩展后进行测试；也许你已经写过一些测试，但是并不确定这些测试写的是否正确；或者，也许你正在写 App 的，同时你需要进行测试。
+也许你已经有一个正在“正常工作”的 App 但是并没有为它建立测试，现在你需要在任何对 App 的修改和扩展后进行测试；也许你已经写过一些测试，但是并不确定这些测试写的是否正确；或者，也许你正在写一个 App ，同时你需要进行测试。
 
-本篇关于 iOS 单元和 UI 测试的入门教程将向你介绍如下内容：
+本篇文章是关于 iOS 单元和 UI 测试的入门教程，将介绍如下内容：
 
 * 如何使用 XCode 测试 navigator 去测试 App 的 model 和异步方法。
 * 如何使用 stubs 和 mocks 去构造一个用来替代需要交互的一些库，或是系统对象。
@@ -30,25 +30,25 @@
 
 ## First Things FIRST: Best Practices for Testing
 
-**F I R S T** 简洁的描述了有效的单元测试的原则和特点:
+**F I R S T**  原则简洁的描述了有效的单元测试的原则和特点:
 
 * **Fast**: 测试需要运行的比较快。
 * **Independent/Isolated**: 测试内容需要独立，不去创建或销毁其他对象。
 * **Repeatable**: 必须确保每次的测试结果相同。额外的数据源或是同步问题也许将导致间歇性的失败。
-* **Self-validating**：测试必须是全自动的；输出结果为 "pass" 或者 "fail", 而不是只是编写者可以理解的 log 文件。
+* **Self-validating**：测试必须是全自动的；输出结果仅为 "pass" 或者 "fail", 而不是只是编写者可以理解的 log 文件。
 * **Timely**: 理想情况下，在实现具体功能前测试应当就已经写好。
 
 遵守 FRST 原则将有助于写出清晰有效的测试。
 
 ## Getting Start
 
-下载并解压 [用于本篇文章的Demo](https://koenig-media.raywenderlich.com/uploads/2016/12/Starters.zip) BullsEye 和 HalfTunes.
+下载并解压 [本篇文章所用到的Demo](https://koenig-media.raywenderlich.com/uploads/2016/12/Starters.zip)BullsEye 和 HalfTunes.
 
-**BullsEye** 是一个简单的游戏应用，右下方有一个 segmented control 用于选择游戏模式；选择 **Slede** 模式去滑动 slider 来接近一个可能打到的数值，选择 **Type** 去猜 slider 所处的位置的数值 ，切换control 的同时也会存储用户的游戏模式在 UserDefault。
+**BullsEye** 是一个简单的游戏应用，右下方有一个 segmented control 用于选择游戏模式；选择 **Slide** 模式去滑动 slider 来接近一个可能打到的数值，选择 **Type** 去猜 slider 所处的位置的数值 ，切换control 的同时也会存储用户的游戏模式在 UserDefault 中。
 
-**HalfTunes** 是一个简单的应用来自 [NSURLSession Tutorial](https://www.raywenderlich.com/110458/nsurlsession-tutorial-getting-started), 已经更新至swift3. 用户可以通过 iTunes API 来查询歌曲，下载歌曲的片段。
+**HalfTunes** 是一个简单的应用来自 [NSURLSession Tutorial](https://www.raywenderlich.com/110458/nsurlsession-tutorial-getting-started), 现已更新至swift3. 用户可以通过 iTunes API 来查询歌曲，下载歌曲的片段。
 
-**Let's start testing!!!**
+接下来我们就可以结合以上 Demo 和本篇文章所介绍的内容来开是写测试了。
 
 ## Unit Testing in Xcode
 
@@ -66,7 +66,7 @@
 
 ![TestNavigator2](https://raw.githubusercontent.com/mx-in/notes/master/articles/imgs/TestNavigator2.png)模板中导入了 **XCTest** 并且定义了 **XCTestCase** 的子类 **BullsEyeTests** ，包含了 **setup()**, **tearDown()** 和 测试方法范例。
 
-有三种方法去运行这个 test class ：
+有三种方法去运行这个测试类 ：
 
 1. 在 **Product\Test** 菜单下点击测试，或者使用 **Command-U** 快捷键，这将运行所有测试类。
 2. 点击测试 navigator 中的箭头按钮。
@@ -80,7 +80,7 @@
 
 ![TestNavigator4](https://raw.githubusercontent.com/mx-in/notes/master/articles/imgs/TestNavigator4.png)
 
-你不需要 **testPerformanceExample()**， 所以删掉它即可。
+现在尚不需要 **testPerformanceExample()**， 所以删掉它即可。
 
 ## 使用 XCTAssert 用于测试 Models
 
@@ -109,11 +109,11 @@ gameUnderTest.startNewGame()
 
 如上在 class 层级创建了一个 SUT (System Under Test)，所以此测试类中的所有方法都可以使用这个 SUT 下对象属的所有属性和方法。
 
-在这里我们调用了 game 的用于创建一个 **targetValue** 的方法**startNewCame** 。
+在这里我们调用了 game 中用于创建一个 **targetValue** 的方法**startNewCame** 。
 
 你写的测试中许多方法都将用到 **targetValue** , 用于测试 game 对得分的计算是否准确。
 
-为了避免忘记，*release* 你的 SUT 对象在 tearDown() 方法的 super: 调用后：
+为了避免忘记，*释放* 你的 SUT 对象在 tearDown() 方法的 super: 调用后：
 
 ```swift
 gameUnderTest = nil
@@ -139,15 +139,13 @@ func testScoreIsComputed() {
 }
 ```
 
-测试方法的名字永远已 **test** 开头，如下为该测试的说明。
-
-一个非常好的写测试的习惯是将你的测试方法分解为 **given**, **when**, 和 **then** 三部份：
+测试方法的名字永远已 **test** 开头，一个非常好的写测试的习惯是将你的测试方法分解为 **given**, **when**, 和 **then** 三部份：
 
 1. 在 **given** 中创建所有你需要的 value；在这个例子中创建了 **guess** value 用于指定一个不同于 targetValue 的值。
 2. 在 **when** 中执行将要被测试的代码：调用`gameUnderTest.check(_:)`.
 3. 在 **then** 中的断言中给出你期望的结果，并传入一段用于描述断言失败后将要打印的信息（在这个例子中， `gameUnderTest.scoreRound` 是 100 – 5）。
 
-点击左侧 navigator 中的小钻石。App 将会被构建并且运行，小钻石图标将会变为绿色的小对勾！！
+接下来点击左侧 navigator 中的小钻石。App 将会被构建并且运行，小钻石图标将会变为绿色的小对勾(测试成功)！！
 
 > **note**: 按住 command 单击XCTAssertEqual 你将看到 *XCTestAssertions.h* 代码中你将会看到所有的 *XCTestAssertions* 方法，或者可以前往 [Apple’s Assertions Listed by Category](https://developer.apple.com/library/prerelease/content/documentation/DeveloperTools/Conceptual/testing_with_xcode/chapters/04-writing_tests.html#//apple_ref/doc/uid/TP40014132-CH4-SW35)查阅。
 
@@ -194,11 +192,9 @@ func testScoreIsComputedWhenGuessLTTarget() {
 
 现在你已经学习了如何去测试并且如何 debug 测试失败的内容，接下来可以尝试使用`XCTestExpectation` 来测试网络通信。
 
-
-
 打开 *HalfTunes*工程: 这是一个使用 `URLSession` 并使用 iTunes Api 来查询歌曲的例子。
 
-假如你想使用 [AlamoFire](https://www.raywenderlich.com/121540/alamofire-tutorial-getting-started) 来进行网络请求，为了查明是有原有的代码被弄坏，这就需要去写一些测试用于测试网络请求, 并且在每一次修改代码后运行他们。
+假如你想使用 [AlamoFire](https://www.raywenderlich.com/121540/alamofire-tutorial-getting-started) 来进行网络请求，为了查明是有原有的代码是否被弄坏，这就需要去写一些测试用于测试网络请求, 并且在每一次修改代码后运行他们。
 
 `URLSession`方法是*异步的* ：它会很快返回结果，但是并不是运行后立即返回。为了测试异步方法你需要使用  `XCTestExpectation` 去使你的测试等待到异步方法完成操作。
 
@@ -210,7 +206,7 @@ func testScoreIsComputedWhenGuessLTTarget() {
 @testable import HalfTunes
 ```
 
-在这个测试类中将使用原生的 session 用于向 Apple 的 servers 发送请求, 首先声明一个`sessionUnderTest` 对象, 然后 `setup()`初始化，最后在`tearDown()中 release
+在这个测试类中将使用原生的 session 用于向 Apple 的 servers 发送请求, 首先声明一个 `sessionUnderTest` 对象, 然后 `setup()`初始化，最后在 `tearDown()` 中 release
 
 ```swift
 var sessionUnderTest: URLSession!
@@ -267,7 +263,7 @@ func testValidCallToiTunesGetsHTTPStatusCode200() {
 
 ## Fail Faster
 
-失败很让人受伤，而且也不应该太过耗时，以下将告诉你如何在测试失败的情况下更快的发现测试失败，而不是像上面的例子一样需要等到 `timeout` 时间耗尽以后，尽量的节省时间，这样你更好的把时间浪费在刷朋友圈上了 ：）
+失败很让人受伤，而且失败过程也不应该太过耗时，如下将阐释如何在测试失败的情况下更快的发现失败，而不是像上面的例子一样需要等到 `timeout` 时间耗尽以后，尽量的节省时间，以便把时间浪费在刷朋友圈上了 ：）
 
 首先修改测试使得异步调用返回失败的结果，轻轻的从 URL 的"itunes"中删去 's' ：
 
@@ -275,11 +271,11 @@ func testValidCallToiTunesGetsHTTPStatusCode200() {
 let url = URL(string: "https://itune.apple.com/search?media=music&entity=song&term=abba")
 ```
 
-运行测试，测试将失败，但是你却必须得等到 timeout 的时间走完! 在上边的例子中要么 调用 promise.fulfill() 在测试成功的情况下，要么等待 timeout 的时间走完，在测试失败的情况下。
+运行测试，测试将失败，但是你却必须得等到 timeout 的时间走完! 在上边的例子中要么调用 promise.fulfill() 在测试成功的情况下，要么等待 timeout 的时间走完，在测试失败的情况下。
 
 你可以修改 expectation 使得在测试失败的情况下可以更快的呈现失败结果: 替换等待请求成功的方案，采取只等待异步方法的回调被执行，无论返回的结果是成功或是失败，都将较快的接收到相应的 reponse ，当服务器有响应时即实现了所期望的情况，接下来你的测试可以检查请求是否成功。
 
-接下里你需要创建一个新的 test 方法并添加到你的测试类中去：
+接下来你需要创建一个新的 test 方法并添加到你的测试类中去：
 
 ```swift
 // Asynchronous test: faster fail
@@ -316,15 +312,15 @@ func testCallToiTunesCompletes() {
 
 ## Faking Objects and Interactions
 
-异步测试给了你可以正确使用异步请求ApI 返回数据的信心。也许你同样需要测试你的程序在接受到来自 `URLSession ` 的数据做为输入时程序是否正确工作, 又或是测试 `UserDefaults`  CloudKit 是否更新成功。
+异步测试让你在使用异步请求 ApI 时信心满满。接下来，也许你同样需要测试你的程序在接收到来自 `URLSession ` 的数据做为输入时程序是否正确工作, 又或是测试 `UserDefaults`  CloudKit 是否更新成功。
 
-大多数的App 需要和系统以及类库的对象有交互，这些对象你无法掌控，并且测试起来也许很慢且测试结果很可能是无法复现的，这和 **FIRST** 原则中的两条是冲突的。所以做为替代，你需要伪造交互（*fake* the interactions）通过测试桩(stubs)获取输入，或是通过模拟的对象(mock objects)。
+大多数的 App 需要和系统以及类库对象进行交互，这些对象你无法掌控，并且测试起来也许很慢且测试结果很可能是无法复现的，这和 **FIRST** 原则中的两条是冲突的。所以做为替代，你需要伪造交互（*fake* the interactions）通过测试桩(stubs)获取输入，或是通过模拟的对象(mock objects)。
 
-创建一个 faker 对象，当你的代码依赖与系统或是类库对象，将这个faker 注入你的代码用来扮演系统或是类库对象的角色。 [*Dependency Injection* by Jon Reid](https://www.objc.io/issues/15-testing/dependency-injection/) 讲述了关于注入的方法。
+你需要创建一个 faker 对象，当你的代码依赖与系统或是类库对象，将这个faker 注入你的代码用来扮演系统或是类库对象的角色。 [*Dependency Injection* by Jon Reid](https://www.objc.io/issues/15-testing/dependency-injection/) 讲述了关于注入的方法。
 
 ### Fake Input From Stub
 
-在此测试中，你将检查该应用程序的updateSearchResults（_ :)方法是否正确地解析会话下载的数据，检查的方法是去检查searchResults.count是否正确。 SUT(system under test) 为 viewController，你需要使用一些预先下载的数据来伪造会话
+在此测试中，你将检查该应用程序的 `updateSearchResults(_ :)` 方法是否正确地解析会话下载的数据，检查的方法是去检查 `searchResults.count`是否正确。 SUT(system under test) 为 `viewController`，你需要使用一些预先下载的数据来伪造会话。
 
 点击 + 在菜单中选择 *New Unit Test Target…* 然后命名为 *HalfTunesFakeTests*. 然后导入 HalfTunes app 通过使用下边的 `import`  声明:
 
@@ -344,20 +340,18 @@ override func setUp() {
 }
  
 override func tearDown() {
-  controllerUnderTest = nil
   super.tearDown()
+  controllerUnderTest = nil
 }
 ```
 
-> **Note:** SUT 是一个 view controller 因为  HalfTunes 有一个 *臃肿* 的 view controller — 所有的工作都会在 SearchViewController.swift 中完成。 [将网络请求代码分离在其他模块中](http://williamboles.me/networking-with-nsoperation-as-your-wingman/) 将减少这个问题，并且将更易于测试。
+> **Note:** SUT 是一个 view controller 因为  HalfTunes 有一个 *臃肿* 的 view controller — 所有的工作都会在 SearchViewController.swift 中完成。 [将网络请求代码分离在其他模块中](http://williamboles.me/networking-with-nsoperation-as-your-wingman/) 将减少类似问题，并且将更易于测试。
 
 接下来你需要一个简单的 JSON 数据用于伪造一个 session 所将要提供的数据，来进行测试；我们需要几条数据即可，所以在下载的 URL 后边添加 `&limit=3` 来限制一下下载数据的条数。
 
 ```swift
 https://itunes.apple.com/search?media=music&entity=song&term=abba&limit=3
 ```
-
-
 
 Copy 这个 URL 把它复制在浏览器中, 复制 JSON 并且把他们存储在一个名为  *abbaData.json* 的文件中，然后你需要将它添加至 *HalfTunesFakeTests* group 中。
 
@@ -380,9 +374,9 @@ let sessionMock = URLSessionMock(data: data, response: urlResponse, error: nil)
 controllerUnderTest.defaultSession = sessionMock
 ```
 
-> **Note:** 你将在你的测试中直接的使用伪造的 session 对象，但是这里向你展示了如何去调用 SUT 的方法，从而可以去使用 view controller 的 `defaultSession`属性.
+> **Note:** 你将在你的测试中直接的使用伪造的 session 对象，但是这里可以看出如何去调用 SUT 的方法：使用 viewController 的  `defaultSession `属性.
 
-现在你可以去写下用于检查调用 `updateSearchResults(_:)`方法是否会正确的解析伪造的数据。接下来替换 `testExample()`方法：
+现在你可以去写下用于检查调用 `updateSearchResults(_:)` 方法是否会正确的解析伪造的数据。接下来替换 `testExample()`方法：
 
 ```swift
 // Fake URLSession with DHURLSession protocol and stubs
@@ -415,7 +409,7 @@ func test_UpdateSearchResults_ParsesData() {
 
 你依旧需要去写一个异步测试，因为 **stub** 需要假装有一个异步方法。
 
-在 *when*  的 assertion 中 在运行测试前`searchResults`应当为0  — 这将为真, 因为你在 `setup()` 方法中创建了一个全新的 SUT。
+*when*  中断言在运行测试前 `searchResults` 应当为 0 ， 这将为真, 因为你在 `setup()` 方法中创建了一个全新的 SUT。
 
 伪造数据的 JSON 包含三个 `Track` 对象，所以在 *then* 的 assertion中 view controller 的`searchResults` 数组应当包含三个对象。
 
@@ -635,7 +629,7 @@ Baselines 存储了对应设别的配置, 因此你可以在几个不同的设�
 
 ### 100% Coverage?
 
-该如何努力实现100％的代码覆盖呢？ 谷歌一下 “100% unit test coverage”，你会发现一系列支持和反对意见，以及对“100% unit test coverage” 的定义的辩论。最多的争论是最后的10-15％的努力是不值得的。也有争论说最后的10-15％是最重要的，因为很难测试。Google “hard to unit test bad design” 可以找到一些令人信服的观点如：[untestable code is a sign of deeper design problems](https://www.toptal.com/qa/how-to-write-testable-code-and-why-it-matters) ，进一步的去思考也许会得出一条结论： [测试驱动开发](http://qualitycoding.org/tdd-sample-archives/) 是行之有效的开发模式。
+该如何努力去实现100％的代码覆盖呢？ 谷歌一下 “100% unit test coverage”，你会发现一系列支持和反对意见，以及关于“100% unit test coverage” 的定义的辩论。最多的争论是最后的10-15％的努力到底是不值得的。有争论说最后的10-15％是最重要的，因为很难测试。Google “hard to unit test bad design” 可以找到一些令人信服的观点如：[untestable code is a sign of deeper design problems](https://www.toptal.com/qa/how-to-write-testable-code-and-why-it-matters) ，进一步的去思考我们也许会得出一条结论：无论如何，总之 [测试驱动开发](http://qualitycoding.org/tdd-sample-archives/) 的模式是行之有效的。
 
 ## END
 
